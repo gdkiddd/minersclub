@@ -41,50 +41,52 @@
         }
     </style>
     <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetchMbcPrice();
+        });
+
         async function fetchMbcPrice() {
             try {
                 let response = await fetch("https://api.dexscreener.com/latest/dex/pairs/bsc/0x2d7c6794ef5a5234b26ba620c659c0913f4b0609");
                 let data = await response.json();
                 let price = parseFloat(data.pairs[0].priceUsd);
-                document.getElementById("mbcPrice").value = price.toFixed(4);
+                let mbcPriceInput = document.getElementById("mbcPrice");
+                if (mbcPriceInput) {
+                    mbcPriceInput.value = price.toFixed(4);
+                    alert("MBC 价格获取成功: $" + price.toFixed(4));
+                }
             } catch (error) {
+                alert("获取MBC价格失败，请手动输入。");
                 console.error("获取MBC价格失败", error);
             }
         }
 
         function calculate() {
-            let mbcPrice = parseFloat(document.getElementById("mbcPrice").value);
-            let growthFactor = parseFloat(document.getElementById("growthFactor").value);
-            let stakeAmount = parseFloat(document.getElementById("stakeAmount").value);
-            let apy = parseFloat(document.getElementById("apy").value) / 100;
+            let mbcPrice = parseFloat(document.getElementById("mbcPrice").value) || 0;
+            let growthFactor = parseFloat(document.getElementById("growthFactor").value) || 1;
+            let stakeAmount = parseFloat(document.getElementById("stakeAmount").value) || 0;
+            let apy = parseFloat(document.getElementById("apy").value) / 100 || 0;
+
+            if (mbcPrice <= 0 || stakeAmount <= 0) {
+                alert("请输入有效的MBC价格和质押金额");
+                return;
+            }
 
             let expectedMbcPrice = mbcPrice * growthFactor;
-            let stakeMbcQty = stakeAmount;
-            let mbcValue = stakeMbcQty * mbcPrice;
-            let actualStakeTotal = stakeAmount + mbcValue;
-
-            let dailyInterest = (stakeAmount * apy / 360);
-            let dailyProfitMbc = ((expectedMbcPrice - mbcPrice) * stakeMbcQty / 30);
+            let actualStakedTotal = stakeAmount + stakeAmount*mbcPrice; // 实际质押总额U计算
+            let dailyInterest = (stakeAmount * apy) / 360;
+            let dailyProfitMbc = ((expectedMbcPrice - mbcPrice) * stakeAmount) / 30;
             let totalDailyProfit = dailyInterest + dailyProfitMbc;
-            
-            let interest30d = dailyInterest * 30;
-            let profit30dMbc = dailyProfitMbc * 30;
             let totalProfit30d = totalDailyProfit * 30;
-            
+            let totalannualProfit = totalDailyProfit * 360;
             let actualApy = (expectedMbcPrice === mbcPrice) ? apy * 100 : ((totalProfit30d * 12) / stakeAmount) * 100;
-            
-            document.getElementById("expectedMbcPrice").innerText = expectedMbcPrice.toFixed(4);
-            document.getElementById("stakeMbcQty").innerText = stakeMbcQty.toFixed(2);
-            document.getElementById("mbcValue").innerText = "$" + mbcValue.toFixed(2);
-            document.getElementById("actualStakeTotal").innerText = "$" + actualStakeTotal.toFixed(2);
-            document.getElementById("interest30d").innerText = "$" + interest30d.toFixed(2);
-            document.getElementById("profit30dMbc").innerText = "$" + profit30dMbc.toFixed(2);
-            document.getElementById("totalProfit30d").innerText = "$" + totalProfit30d.toFixed(2);
+
+            document.getElementById("expectedMbcPrice").innerText = "$" + expectedMbcPrice.toFixed(4);
+            document.getElementById("actualStakedTotal").innerText = "$" + actualStakedTotal.toFixed(2);
             document.getElementById("dailyProfit").innerText = "$" + totalDailyProfit.toFixed(2);
+            document.getElementById("annualProfit").innerText = "$" + totalannualProfit.toFixed(2);
             document.getElementById("actualApy").innerText = actualApy.toFixed(2) + "%";
         }
-        
-        window.onload = fetchMbcPrice;
     </script>
 </head>
 <body>
@@ -92,7 +94,7 @@
         <h2 class="text-center">Hashbank收益计算器</h2>
         <div class="mb-3">
             <label class="form-label">最新MBC价格U:</label>
-            <input type="number" id="mbcPrice" class="form-control" readonly>
+            <input type="number" id="mbcPrice" class="form-control">
         </div>
         <div class="mb-3">
             <label class="form-label">预期涨幅倍数:</label>
@@ -115,12 +117,12 @@
         <button class="btn btn-primary w-100" onclick="calculate()">计算</button>
         <div class="mt-4">
             <h4 class="text-center">计算结果</h4>
-            <p>每日综合收益U: <span id="dailyProfit">$0.00</span></p>
             <p>实际APY: <span id="actualApy">0.00%</span></p>
-            <p>预期MBC价U: <span id="expectedMbcPrice">0.02</span></p>
-            <p>质押数量MBC: <span id="stakeMbcQty">10000</span></p>
-            <p>MBC价值U: <span id="mbcValue">$45</span></p>
-            <p>实际质押总额U: <span id="actualStakeTotal">$1022</span></p>
+            <p>每日综合收益U: <span id="dailyProfit">$0.00</span></p>
+            <p>年综合收益U: <span id="annualProfit">$0.00</span></p>
+          <br>
+            <p>实际质押总额U: <span id="actualStakedTotal">$0.00</span></p>
+            <p>预期MBC价U: <span id="expectedMbcPrice">$0.0000</span></p>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
