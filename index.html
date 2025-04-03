@@ -61,11 +61,16 @@
         }
 
         function calculate() {
-            let mbcPrice = parseFloat(document.getElementById("mbcPrice").value) || 0;
-            let growthFactor = parseFloat(document.getElementById("growthFactor").value) || 1;
-            let stakeAmount = parseFloat(document.getElementById("stakeAmount").value) || 0;
-            let apy = parseFloat(document.getElementById("apy").value) / 100 || 0;
+            let mbcPrice = parseFloat(document.getElementById("mbcPrice").value);
+            let growthFactor = parseFloat(document.getElementById("growthFactor").value);
+            let stakeAmount = parseFloat(document.getElementById("stakeAmount").value);
+            let apy = parseFloat(document.getElementById("apy").value) / 100;
+            const selectElement = document.getElementById("apy");
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
 
+           
+            let days = parseFloat(selectedOption.getAttribute('days'));
+            
             if (mbcPrice <= 0 || stakeAmount <= 0) {
                 alert("请输入有效的MBC价格和质押金额");
                 return;
@@ -73,18 +78,23 @@
 
             let expectedMbcPrice = mbcPrice * growthFactor;
             let actualStakedTotal = stakeAmount + stakeAmount * mbcPrice;
-            let dailyInterest = (stakeAmount * apy) / 360;
-            let dailyProfitMbc = ((expectedMbcPrice - mbcPrice) * stakeAmount) / 30;
-            let totalDailyProfit = dailyInterest + dailyProfitMbc;
-            let totalProfit30d = totalDailyProfit * 30;
+            let dailyProfit = (stakeAmount * apy) / 360;
+            let dailyProfitMbc = ((expectedMbcPrice - mbcPrice) * stakeAmount) / days;
+            let totalDailyProfit = dailyProfit + dailyProfitMbc;
+          
             let totalannualProfit = totalDailyProfit * 360;
-            let actualApy = (expectedMbcPrice === mbcPrice) ? apy * 100 : ((totalProfit30d * 12) / stakeAmount) * 100;
+            let actualApy = totalannualProfit / stakeAmount;
 
             document.getElementById("expectedMbcPrice").innerText = "$" + expectedMbcPrice.toFixed(4);
             document.getElementById("actualStakedTotal").innerText = "$" + actualStakedTotal.toFixed(2);
             document.getElementById("dailyProfit").innerText = "$" + totalDailyProfit.toFixed(2);
             document.getElementById("annualProfit").innerText = "$" + totalannualProfit.toFixed(2);
-            document.getElementById("actualApy").innerText = actualApy.toFixed(2) + "%";
+            document.getElementById("actualApy").innerText = (actualApy * 100).toFixed(2) + "%";
+            document.getElementById("basicApy").innerText = (apy * 100).toFixed(2) + "%";
+          
+            console.log(actualApy); 
+
+          
         }
     </script>
 </head>
@@ -104,7 +114,7 @@
                 <option value="2">2</option>
                 <option value="3">3</option>
                 <option value="4">4</option>
-                <option value="5" selected>5</option>
+                <option value="5" >5</option>
                 <option value="6">6</option>
                 <option value="7">7</option>
                 <option value="8">8</option>
@@ -112,7 +122,7 @@
                 <option value="10">10</option>
                 <option value="20">20</option>
                 <option value="30">30</option>
-                <option value="50">50</option>
+                <option value="50" selected>50</option>
                 <option value="100">100</option>
             </select>
         </div>
@@ -121,18 +131,19 @@
             <input type="number" id="stakeAmount" class="form-control" value="10000" step="1000" min="1000">
         </div>
         <div class="mb-3">
-            <label class="form-label">基础APY(%):</label>
+            <label class="form-label">质押天数:</label>
             <select id="apy" class="form-select">
-                <option value="22">22%</option>
-                <option value="30">30%</option>
-                <option value="35">35%</option>
-                <option value="40">40%</option>
-                <option value="45" selected>45%</option>
+                <option value="22" days="30">30天</option>
+                <option value="30" days="90" >90天</option>
+                <option value="35" days="180">180天</option>
+                <option value="40" days="360" >360天</option>
+                <option value="45" days="720" selected>720天</option>
             </select>
+            <p>APY: <span id="basicApy">0.00%</span></p>    
         </div>
         <button class="btn btn-primary w-100" onclick="calculate()">计算</button>
         <div class="mt-4">
-            <h4 class="text-center">计算结果</h4>
+            <h4 class="text-center">计算结果</h4>       
             <p>实际APY: <span id="actualApy">0.00%</span></p>
             <p>每日综合收益U: <span id="dailyProfit">$0.00</span></p>
             <p>年综合收益U: <span id="annualProfit">$0.00</span></p>
