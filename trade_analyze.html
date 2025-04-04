@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>币种交易分析器</title>
+    <style>
+        #txList {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            background: #f9f9f9;
+            font-size: 13px;
+        }
+        #output {
+            font-size: 17px;
+        }
+        #status {
+            margin-top: 10px;
+            color: green;
+        }
+        body {
+            font-family: Arial, sans-serif;
+        }
+        input {
+            width: 450px;
+            padding: 5px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>币种交易分析器</h1>
+    <button onclick="connectWallet()">连接 OKX Web3 钱包</button>
+    <br><br>
+
+    <label for="addressInput">钱包地址：</label>
+    <input type="text" id="addressInput" value="">
+    <br><br>
+
+    <label for="mbcContractInput">Token合约地址：</label>
+    <input type="text" id="mbcContractInput" value="0x7D28276933D6aA0Ef1513F8B5e18dC492befeFea">
+    <br><br>
+
+    <label for="usdtContractInput">USDT 合约地址：</label>
+    <input type="text" id="usdtContractInput" value="0x55d398326f99059fF775485246999027B3197955">
+    <br><br>
+
+    <label for="pairContractInput">Token-USDT交易对合约地址：</label>
+    <input type="text" id="pairContractInput" value="0x2d7c6794ef5a5234b26ba620c659c0913f4b0609">
+    <br><br>
+
+    <button onclick="analyzeTrades()">开始分析</button>
+
+    <div id="status"></div>
+    <h3>币名: <span id="tokenName">等待分析</span></h3>
+    <h4>流通总量: <span id="tokenSupply">等待分析</span></h4>
+    <h4>精度: <span id="tokenDecimals">等待分析</span></h4>
+    <pre id="output"></pre>
+    <div id="txList"></div>
+
+    <script>
+        const API_KEY = "KIUQKQCQH7F3JZ9IS3SSYRV6DK2TU6B4WP";
+
+        async function connectWallet() {
+            if (typeof window.okxwallet === 'undefined') {
+                alert("请先安装 OKX Web3 钱包扩展");
+                return;
+            }
+
+            try {
+                const accounts = await window.okxwallet.request({ method: 'eth_requestAccounts' });
+                const address = accounts[0];
+                document.getElementById("addressInput").value = address;
+                document.getElementById("status").textContent = `✅ 已连接 OKX 钱包：${address}`;
+            } catch (err) {
+                console.error("连接失败:", err);
+                document.getElementById("status").textContent = `❌ 连接失败: ${err.message}`;
+            }
+        }
+
+        async function getTokenNameAndSupply(contractAddress) {
+            const API_URL = `https://api.bscscan.com/api?module=stats&action=tokenCsupply&contractaddress=${contractAddress}&apikey=${API_KEY}`;
+            const nameUrl = `https://api.bscscan.com/api?module=token&action=tokeninfo&contractaddress=${contractAddress}&apikey=${API_KEY}`;
+            const [supplyRes, nameRes] = await Promise.all([fetch(API_URL), fetch(nameUrl)]);
+            const supplyData = await supplyRes.json();
+            const nameData = await nameRes.json();
+
+            const tokenName = nameData.result ? nameData.result.tokenName || "未知币种" : "未知币种";
+            const tokenDecimal = nameData.result ? parseInt(nameData.result.decimals || "18") : 18;
+            const rawSupply = supplyData.result || "0";
+            const formattedSupply = (parseFloat(rawSupply) / Math.pow(10, tokenDecimal)).toLocaleString();
+
+            return {
+                name: tokenName,
+                totalSupply: formattedSupply,
+                decimals: tokenDecimal
+            };
+        }
+
+        async function getTransactions(address) {
+            const API_URL = `https://api.bscscan.com/api?module=account&action=tokentx&address=${address}&startblock=0&endblock=99999999&sort=asc&apikey=${API_KEY}`;
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            return data.result || [];
+        }
+
+        async function getLatestMbcPrice() {
+            const DEXSCREENER_URL = "https://api.dexscreener.com/latest/dex/pairs/bsc/0x2d7c6794ef5a5234b26ba620c659c0913f4b0609";
+            const res = await fetch(DEXSCREENER_URL);
+            const data = await res.json();
+            if (data && data.pair && data.pair.priceUsd) {
+                return parseFloat(data.pair.priceUsd);
+            }
+            return -1;
+        }
+
+        async function analyzeTrades() {
+            const MBC_CONTRACT = document.getElementById("mbcContractInput").value.trim();
+            const BSC_USD_CONTRACT = document.getElementById("usdtContractInput").value.trim();
+            const PAIR_CONTRACT = document.getElementById("pairContractInput").value.trim();
+            const ADDRESS = document.getElementById("addressInput").value.trim();
+
+            if (!ADDRESS) {
+                document.getElementById("status").textContent = "❗ 请先连接钱包或输入钱包地址。";
+                return;
+            }
+
+            document.getElementById("status").textContent = "正在分析，请稍候...";
+
+            try {
+                const { name: tokenName, totalSupply, decimals } = await getTokenNameAndSupply(MBC_CONTRACT);
+                document.getElementById("tokenName").textContent = tokenName;
+                document.getElementById("tokenSupply").textContent = totalSupply;
+                document.getElementById("tokenDecimals").textContent = decimals;
+
+                const transactions = await getTransactions(ADDRESS);
+                const latestPrice = await getLatestMbcPrice();
+
+                let totalBuyCost = 0, totalBuyQuantity = 0;
+                let totalSellRevenue = 0, totalSellQuantity = 0;
+                let holdingQuantity = 0, buyCount = 0, sellCount = 0;
+                let realizedProfit = 0;
+                let txDetails = [];
+
+                for (let tx of transactions) {
+                    const value = parseInt(tx.value) / Math.pow(10, parseInt(tx.tokenDecimal));
+                    const time = new Date(parseInt(tx.timeStamp) * 1000).toLocaleString();
+
+                    if (tx.contractAddress.toLowerCase() === MBC_CONTRACT.toLowerCase()) {
+                        if (tx.to.toLowerCase() === ADDRESS.toLowerCase()) {
+                            const correspondingTx = transactions.find(t => t.hash === tx.hash && t.contractAddress.toLowerCase() === BSC_USD_CONTRACT.toLowerCase());
+                            if (correspondingTx) {
+                                const cost = parseInt(correspondingTx.value) / Math.pow(10, parseInt(correspondingTx.tokenDecimal));
+                                const price = cost / value;
+                                totalBuyCost += cost;
+                                totalBuyQuantity += value;
+                                holdingQuantity += value;
+                                buyCount++;
+                                txDetails.push(`🟢 买入 ${value.toFixed(2)} ${tokenName}，成本 $${cost.toFixed(2)}，单价 $${price.toFixed(4)}\n时间: ${time}\n哈希: ${tx.hash}`);
+                            }
+                        } else if (tx.from.toLowerCase() === ADDRESS.toLowerCase()) {
+                            const correspondingTx = transactions.find(t => t.hash === tx.hash && t.contractAddress.toLowerCase() === BSC_USD_CONTRACT.toLowerCase());
+                            if (correspondingTx) {
+                                const revenue = parseInt(correspondingTx.value) / Math.pow(10, parseInt(correspondingTx.tokenDecimal));
+                                const price = revenue / value;
+                                totalSellRevenue += revenue;
+                                totalSellQuantity += value;
+                                holdingQuantity -= value;
+                                sellCount++;
+                                realizedProfit += (price * value) - ((totalBuyCost / totalBuyQuantity) * value);
+                                txDetails.push(`🔴 卖出 ${value.toFixed(2)} ${tokenName}，收入 $${revenue.toFixed(2)}，单价 $${price.toFixed(4)}\n时间: ${time}\n哈希: ${tx.hash}`);
+                            }
+                        }
+                    }
+                }
+
+                const avgBuyPrice = totalBuyQuantity ? (totalBuyCost / totalBuyQuantity).toFixed(4) : 0;
+                const avgSellPrice = totalSellQuantity ? (totalSellRevenue / totalSellQuantity).toFixed(4) : 0;
+                const pnl = (totalSellRevenue - totalBuyCost).toFixed(1);
+                const unrealizedPnl = (holdingQuantity * latestPrice).toFixed(1);
+                const currentAvgPrice = holdingQuantity ? (totalBuyCost / holdingQuantity).toFixed(4) : 0;
+                const unrealizedProfit = latestPrice !== -1 ? (holdingQuantity * latestPrice - totalBuyCost).toFixed(1) : 0;
+
+                const result = {
+                    "当前币种单价": latestPrice,
+                    "平均买入价": avgBuyPrice,
+                    "平均卖出价": avgSellPrice,
+                    "买入次数": buyCount,
+                    "卖出次数": sellCount,
+                    "持有数量": holdingQuantity,
+                    "当前均价": currentAvgPrice,
+                    "总盈亏": pnl,
+                    "已实现利润": realizedProfit.toFixed(1),
+                    "未实现估值": unrealizedPnl,
+                    "未实现利润": unrealizedProfit,
+                };
+
+                document.getElementById("output").textContent = JSON.stringify(result, null, 4);
+                document.getElementById("txList").textContent = txDetails.length ? txDetails.join("\n\n") : "没有找到相关交易记录。";
+                document.getElementById("status").textContent = "✅ 分析完成。";
+            } catch (error) {
+                document.getElementById("status").textContent = `❌ 分析失败：${error.message}`;
+                document.getElementById("output").textContent = "";
+                document.getElementById("txList").textContent = "";
+            }
+        }
+    </script>
+</body>
+</html>
