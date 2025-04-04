@@ -15,7 +15,7 @@
             font-size: 13px;
         }
         #output {
-            font-size: 17px;
+            font-size: 15px;
         }
         #status {
             margin-top: 10px;
@@ -79,6 +79,7 @@
                 const address = accounts[0];
                 document.getElementById("addressInput").value = address;
                 document.getElementById("status").textContent = `✅ 已连接 OKX 钱包：${address}`;
+                analyzeTrades();
             } catch (err) {
                 console.error("连接失败:", err);
                 document.getElementById("status").textContent = `❌ 连接失败: ${err.message}`;
@@ -92,7 +93,11 @@
             const supplyData = await supplyRes.json();
             const nameData = await nameRes.json();
 
-            const tokenName = nameData.result ? nameData.result.tokenName || "未知币种" : "未知币种";
+            let tokenName = nameData.result ? nameData.result.tokenName || "未知币种" : "未知币种";
+            if (document.getElementById("mbcContractInput").value.trim() === '0x7D28276933D6aA0Ef1513F8B5e18dC492befeFea'){
+                tokenName = 'MBC';
+            }
+            
             const tokenDecimal = nameData.result ? parseInt(nameData.result.decimals || "18") : 18;
             const rawSupply = supplyData.result || "0";
             const formattedSupply = (parseFloat(rawSupply) / Math.pow(10, tokenDecimal)).toLocaleString();
