@@ -2,8 +2,15 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>trade analyze</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Trade Analyze</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
         #txList {
             max-height: 300px;
             overflow-y: auto;
@@ -11,7 +18,7 @@
             padding: 10px;
             margin-top: 10px;
             white-space: pre-wrap;
-            background: #f9f9f9;
+            background: #ffffff;
             font-size: 13px;
         }
         #output {
@@ -21,51 +28,51 @@
             margin-top: 10px;
             color: green;
         }
-        body {
-            font-family: Arial, sans-serif;
-        }
-        input {
-            width: 450px;
-            padding: 5px;
-        }
-        button {
-            padding: 8px 16px;
+        .token-info span {
             font-size: 14px;
-            margin-bottom: 10px;
+            font-weight: normal;
+            color: #666;
         }
     </style>
 </head>
 <body>
-    <h1>币种交易分析器v1.0</h1>
-    <button onclick="connectWallet()">连接 OKX Web3 钱包</button>
-    <br><br>
-
-    <label for="addressInput">钱包地址：</label>
-    <input type="text" id="addressInput" value="">
-    <br><br>
-
-    <label for="mbcContractInput">Token合约地址：</label>
-    <input type="text" id="mbcContractInput" value="0x7D28276933D6aA0Ef1513F8B5e18dC492befeFea">
-    <br><br>
-
-    <label for="usdtContractInput">USDT 合约地址：</label>
-    <input type="text" id="usdtContractInput" value="0x55d398326f99059fF775485246999027B3197955">
-    <br><br>
-
-    <label for="pairContractInput">Token-USDT交易对合约地址：</label>
-    <input type="text" id="pairContractInput" value="0x2d7c6794ef5a5234b26ba620c659c0913f4b0609">
-    <br><br>
-
-    <button onclick="analyzeTrades()">开始分析</button>
-
-    <div id="status"></div>
-    <h3>币名: <span id="tokenName">等待分析</span></h3>
-    <h4>流通总量: <span id="tokenSupply">等待分析</span></h4>
-    <h4>精度: <span id="tokenDecimals">等待分析</span></h4>
-    <pre id="output"></pre>
-    <div id="txList"></div>
-
-    <script>
+    <div class="container">
+        <h1 class="text-center my-3">币种交易分析器 v1.0</h1>
+        <div class="d-grid gap-2">
+            <button class="btn btn-primary" onclick="connectWallet()">连接 OKX Web3 钱包</button>
+        </div>
+        <div class="mt-3">
+            <label class="form-label" for="addressInput">钱包地址：</label>
+            <input type="text" id="addressInput" class="form-control" placeholder="输入钱包地址">
+        </div>
+        <div class="mt-3">
+            <label class="form-label" for="mbcContractInput">Token合约地址：</label>
+            <input type="text" id="mbcContractInput" class="form-control" value="0x7D28276933D6aA0Ef1513F8B5e18dC492befeFea">
+        </div>
+        <div class="mt-3">
+            <label class="form-label" for="usdtContractInput">USDT 合约地址：</label>
+            <input type="text" id="usdtContractInput" class="form-control" value="0x55d398326f99059fF775485246999027B3197955">
+        </div>
+        <div class="mt-3">
+            <label class="form-label" for="pairContractInput">Token-USDT交易对合约地址：</label>
+            <input type="text" id="pairContractInput" class="form-control" value="0x2d7c6794ef5a5234b26ba620c659c0913f4b0609">
+        </div>
+        <div class="d-grid gap-2 mt-3">
+            <button class="btn btn-success" onclick="analyzeTrades()">开始分析</button>
+        </div>
+        <div id="status" class="mt-3"></div>
+        <div class="card mt-3">
+            <div class="card-body token-info">
+                <h5>币名: <span id="tokenName"></span></h5>
+                <h6>流通总量: <span id="tokenSupply"></span></h6>
+                <h6>精度: <span id="tokenDecimals"></span></h6>
+            </div>
+        </div>
+        <pre id="output" class="mt-3 p-2 bg-light border"></pre>
+        <div id="txList" class="mt-3 p-2 bg-white border"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
         const API_KEY = "KIUQKQCQH7F3JZ9IS3SSYRV6DK2TU6B4WP";
 
         async function connectWallet() {
