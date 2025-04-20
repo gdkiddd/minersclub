@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hashbank 收益模拟器</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- 确保使用最新的Chart.js版本并添加defer属性 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    body { padding: 2rem; background-color: #f8f9fa; }
+    .card { margin-top: 1.5rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 10px; }
+    .highlight { font-size: 1.3rem; font-weight: bold; color: #d63384; }
+    .reward-detail { margin-left: 1.5rem; color: #0d6efd; }
+    .chart-container { 
+      margin: 2rem 0; 
+      display: flex; 
+      flex-wrap: wrap; 
+      justify-content: space-between;
+    }
+    .chart-box {
+      width: 48%;
+      min-width: 300px;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .key-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    .metric-item {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin: 0.5rem;
+      flex: 1 0 45%;
+      min-width: 200px;
+      border-left: 4px solid #0d6efd;
+    }
+    .metric-item h5 {
+      margin-bottom: 0.5rem;
+      color: #495057;
+    }
+    .metric-value {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #0d6efd;
+    }
+    @media (max-width: 768px) {
+      .chart-box { width: 100%; }
+      .metric-item { flex: 1 0 100%; }
+    }
+    h2.section-title {
+      margin: 1.5rem 0;
+      color: #343a40;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2 class="mb-4">📊 Hashbank 收益模拟器</h2>
+  <form id="earningsForm" class="row g-3 card p-4">
+    <div class="col-md-4">
+      <label for="vipLevel" class="form-label">VIP 等级</label>
+      <select class="form-select" id="vipLevel">
+        <option value="VIP6">VIP6</option>
+        <option value="VIP5">VIP5</option>
+        <option value="VIP4">VIP4</option>
+        <option value="VIP3">VIP3</option>
+        <option value="VIP2">VIP2</option>
+        <option value="VIP1">VIP1</option>
+        <option value="PC">PC</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label for="partnerLevel" class="form-label">合伙人等级</label>
+      <select class="form-select" id="partnerLevel">
+        <option value="机构合伙人">机构合伙人</option>
+        <option value="一级合伙人">一级合伙人</option>
+        <option value="二级合伙人">二级合伙人</option>
+        <option value="无">无</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label for="directCount" class="form-label">直推人数</label>
+      <input type="number" class="form-control" id="directCount" value="4">
+    </div>
+    <div class="col-md-4">
+      <label for="memberStake" class="form-label">每位会员质押金额 (U)</label>
+      <input type="number" class="form-control" id="memberStake" value="10000">
+    </div>
+    <div class="col-md-4">
+      <label for="memberDays" class="form-label">质押周期 (天)</label>
+      <select class="form-select" id="memberDays">
+        <option value="30">30</option>
+        <option value="90">90</option>
+        <option value="180">180</option>
+        <option value="360">360</option>
+        <option value="720" selected>720</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label for="mbcPrice" class="form-label">MBC 价格 (U)</label>
+      <input type="number" class="form-control" id="mbcPrice" value="0.02">
+    </div>
+    <div class="col-md-4">
+      <label for="burnedNuts" class="form-label">平台今日燃烧 Nuts 总数</label>
+      <input type="number" class="form-control" id="burnedNuts" value="1000000">
+    </div>
+    <div class="col-md-4">
+      <label for="globalProfit" class="form-label">平台季度利润总额 (U)</label>
+      <input type="number" class="form-control" id="globalProfit" value="3000000">
+    </div>
+    <div class="col-md-4">
+      <label for="totalAgents" class="form-label">参与季度分红人数</label>
+      <input type="number" class="form-control" id="totalAgents" value="10">
+    </div>
+    <div class="col-12 mt-3">
+      <button type="button" class="btn btn-primary" onclick="calculateEarnings()">开始模拟</button>
+    </div>
+  </form>
+
+  <div id="results" class="card p-4 mt-4" style="display: none;">
+    <!-- 结果将在这里动态生成 -->
+  </div>
+</div>
+
+<script>
+  // 确保Chart.js已加载
+  document.addEventListener('DOMContentLoaded', function() {
+    // 检查Chart是否已定义
+    if (typeof Chart === 'undefined') {
+      // 如果Chart未定义，动态加载
+      console.log("Chart.js not loaded, loading it now...");
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+      script.onload = function() {
+        console.log("Chart.js loaded successfully");
+        // 初始化页面
+        setTimeout(initializePage, 100);
+      };
+      document.head.appendChild(script);
+    } else {
+      console.log("Chart.js already loaded");
+      // Chart已定义，直接初始化
+      initializePage();
+    }
+  });
+  
+  function initializePage() {
+    // 初始模拟
+    calculateEarnings();
+  }
+
+  const VIP_LEVELS = {
+    PC: { stake: 100, power_direct: 0, power_indirect: 0, dividend: 0 },
+    VIP1: { stake: 500, power_direct: 0.08, power_indirect: 0, dividend: 0 },
+    VIP2: { stake: 2000, power_direct: 0.13, power_indirect: 0.06, dividend: 0 },
+    VIP3: { stake: 10000, power_direct: 0.16, power_indirect: 0.10, dividend: 0 },
+    VIP4: { stake: 25000, power_direct: 0.20, power_indirect: 0.14, dividend: 0.01 },
+    VIP5: { stake: 50000, power_direct: 0.26, power_indirect: 0.17, dividend: 0.03 },
+    VIP6: { stake: 150000, power_direct: 0.35, power_indirect: 0.20, dividend: 0.05 }
+  };
+
+  const PARTNER_LEVELS = {
+    "机构合伙人": 0.10,
+    "一级合伙人": 0.08,
+    "二级合伙人": 0.05,
+    "无": 0.00
+  };
+
+  const HASHBANK_APY = {
+    30: 1.83,
+    90: 7.5,
+    180: 17.5,
+    360: 40.0,
+    720: 90.0
+  };
+
+  let pieChart, barChart;
+
+  function calculateEarnings() {
+    // 确保Chart已定义
+    if (typeof Chart === 'undefined') {
+      console.error("Chart.js is not loaded yet!");
+      alert("图表库加载失败，请刷新页面重试");
+      return;
+    }
+
+    const vip = document.getElementById("vipLevel").value;
+    const partner = document.getElementById("partnerLevel").value;
+    const direct = Number(document.getElementById("directCount").value);
+    const stake = Number(document.getElementById("memberStake").value);
+    const days = Number(document.getElementById("memberDays").value);
+    const mbcPrice = Number(document.getElementById("mbcPrice").value);
+    const nutsBurned = Number(document.getElementById("burnedNuts").value);
+    const profit = Number(document.getElementById("globalProfit").value);
+    const agents = Number(document.getElementById("totalAgents").value);
+
+    const vipCfg = VIP_LEVELS[vip];
+    const indirect = direct * direct;
+    const team = (direct + indirect) * 10;
+
+    const memberApy = HASHBANK_APY[days];
+    const memberTotal = stake * memberApy / 100;
+    const memberDaily = memberTotal / days;
+
+    const directReward = direct * memberDaily * vipCfg.power_direct;
+    const indirectReward = indirect * memberDaily * vipCfg.power_indirect;
+    const totalReward = directReward + indirectReward;
+    const nuts = totalReward * 1000;
+    const mbc = nuts / nutsBurned * 800000;
+    const nutToMbcRate = mbc / nuts;
+    const promotionU = mbc * mbcPrice;
+
+    const directRewardNuts = directReward * 1000;
+    const directMbc = (directRewardNuts / nutsBurned) * 800000;
+    const directPromotionU = directMbc * mbcPrice;
+
+    const indirectRewardNuts = indirectReward * 1000;
+    const indirectMbc = (indirectRewardNuts / nutsBurned) * 800000;
+    const indirectPromotionU = indirectMbc * mbcPrice;
+
+    const myStake = vipCfg.stake;
+    const myHashbank = myStake * HASHBANK_APY[days] / 100;
+    const myHashbankDaily = myHashbank / days;
+
+    const partnerFee = team * memberDaily * PARTNER_LEVELS[partner];
+    const quarterBonus = profit * vipCfg.dividend / agents;
+    const quarterDaily = quarterBonus / 90;
+
+    const dailyTotal = promotionU + myHashbankDaily + partnerFee + quarterDaily;
+    const annual = dailyTotal * 360;
+    const roiAnnual = (annual / myStake * 100).toFixed(2);
+
+    const resultsDiv = document.getElementById("results");
+    resultsDiv.style.display = "block";
+    
+    // 创建结果HTML
+    resultsDiv.innerHTML = `
+      <h4 class="mb-3">📊 收益模拟结果</h4>
+      
+      <div class="key-metrics">
+        <div class="metric-item">
+          <h5>团队邀请奖励</h5>
+          <div class="metric-value">$${promotionU.toFixed(2)}/天</div>
+          <small class="text-muted">MBC价值 (Nuts燃烧后)</small>
+        </div>
+        <div class="metric-item">
+          <h5>季度分红</h5>
+          <div class="metric-value">$${quarterDaily.toFixed(2)}/天</div>
+          <small class="text-muted">按每季度计算</small>
+        </div>
+        <div class="metric-item">
+          <h5>合伙人服务费</h5>
+          <div class="metric-value">$${partnerFee.toFixed(2)}/天</div>
+          <small class="text-muted">${partner} (${PARTNER_LEVELS[partner]*100}%)</small>
+        </div>
+        <div class="metric-item">
+          <h5>自己质押收益</h5>
+          <div class="metric-value">$${myHashbankDaily.toFixed(2)}/天</div>
+          <small class="text-muted">质押金额: $${myStake}</small>
+        </div>
+      </div>
+      
+      <div class="row mt-4">
+        <div class="col-md-6">
+          <p><strong>VIP等级:</strong> ${vip} (质押要求: ${vipCfg.stake}U)</p>
+          <p><strong>直推人数:</strong> ${direct}, <strong>间推人数:</strong> ${indirect} (比例 1:${(indirect/direct).toFixed(1)})</p>
+          <p><strong>全团队人数:</strong> ${team}</p>
+        </div>
+        <div class="col-md-6">
+          <p><strong>会员日收益:</strong> $${memberDaily.toFixed(2)} (APY: ${memberApy}%)</p>
+          <p><strong>MBC/Nuts 汇率:</strong> ${nutToMbcRate.toFixed(6)}</p>
+          <p class="highlight">每日综合收益: $${dailyTotal.toFixed(2)}</p>
+        </div>
+      </div>
+      
+      <h2 class="section-title">收益详情</h2>
+      
+      <div class="row">
+        <div class="col-md-6">
+          <p><strong>直推奖励 (${vipCfg.power_direct*100}%):</strong> $${directReward.toFixed(2)}</p>
+          <div class="reward-detail">
+            <p>→ Nuts: ${directRewardNuts.toFixed(0)} → MBC: ${directMbc.toFixed(2)}</p>
+            <p>→ MBC价值: <span class="text-success">$${directPromotionU.toFixed(2)}</span></p>
+          </div>
+          
+          <p><strong>间推奖励 (${vipCfg.power_indirect*100}%):</strong> $${indirectReward.toFixed(2)}</p>
+          <div class="reward-detail">
+            <p>→ Nuts: ${indirectRewardNuts.toFixed(0)} → MBC: ${indirectMbc.toFixed(2)}</p>
+            <p>→ MBC价值: <span class="text-success">$${indirectPromotionU.toFixed(2)}</span></p>
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <p><strong>季度分红 (${vipCfg.dividend*100}%):</strong> $${quarterBonus.toFixed(2)}/季度</p>
+          <p><strong>每日季度分红:</strong> $${quarterDaily.toFixed(2)}/天</p>
+          <p><strong>合伙人服务费 (${PARTNER_LEVELS[partner]*100}%):</strong> $${partnerFee.toFixed(2)}/天</p>
+          <p><strong>自己质押收益:</strong> $${myHashbankDaily.toFixed(2)}/天</p>
+          <p><strong>年度总收益:</strong> $${annual.toFixed(2)}</p>
+          <p><strong>年度 ROI 回报率:</strong> ${roiAnnual}%</p>
+        </div>
+      </div>
+      
+      <div class="chart-container">
+        <div class="chart-box">
+          <canvas id="pieChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    `;
+
+    // 确保Canvas元素已创建
+    setTimeout(() => {
+      try {
+        // 销毁旧图表
+        if(pieChart) pieChart.destroy();
+        if(barChart) barChart.destroy();
+
+        // 创建饼图
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        pieChart = new Chart(pieCtx, {
+          type: 'pie',
+          data: {
+            labels: ['团队邀请奖励', '季度分红', '合伙人服务费', '自己质押收益'],
+            datasets: [{
+              data: [promotionU, quarterDaily, partnerFee, myHashbankDaily],
+              backgroundColor: [
+                '#4e73df',
+                '#1cc88a',
+                '#36b9cc',
+                '#f6c23e'
+              ],
+              hoverBackgroundColor: [
+                '#2e59d9',
+                '#17a673',
+                '#2c9faf',
+                '#dda20a'
+              ],
+              hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              title: {
+                display: true,
+                text: '每日收益分布',
+                font: { size: 16, weight: 'bold' }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.raw || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = Math.round((value / total) * 100);
+                    return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                  }
+                }
+              },
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 20
+                }
+              }
+            }
+          }
+        });
+
+        // 创建柱状图
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        barChart = new Chart(barCtx, {
+          type: 'bar',
+          data: {
+            labels: ['自己质押金额', '年度总收益'],
+            datasets: [{
+              label: '金额 (U)',
+              data: [myStake, annual],
+              backgroundColor: [
+                'rgba(54, 185, 204, 0.7)',
+                'rgba(78, 115, 223, 0.7)'
+              ],
+              borderColor: [
+                'rgba(54, 185, 204, 1)',
+                'rgba(78, 115, 223, 1)'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              title: {
+                display: true,
+                text: '投入 vs 回报',
+                font: { size: 16, weight: 'bold' }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `$${context.raw.toFixed(2)}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return '$' + value;
+                  }
+                }
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Error creating charts:", error);
+        alert("创建图表时出错: " + error.message);
+      }
+    }, 100); // 给DOM一点时间来更新
+  }
+</script>
+</body>
+</html>
