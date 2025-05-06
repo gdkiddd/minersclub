@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hashbank 收益模拟器</title>
+  <title>Hashclub代理收益模拟器</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- 引入 Bootstrap 的 JavaScript 文件 -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
   <!-- 确保使用最新的Chart.js版本并添加defer属性 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <style>
@@ -64,7 +67,7 @@
 </head>
 <body>
 <div class="container">
-  <h2 class="mb-4">📊 Hashbank 收益模拟器</h2>
+  <h2 class="mb-4">💰Hashclub代理收益模拟器v1.1 by KID</h2>
   <form id="earningsForm" class="row g-3 card p-4">
     <div class="col-md-4">
       <label for="vipLevel" class="form-label">VIP 等级</label>
@@ -91,6 +94,16 @@
       <label for="directCount" class="form-label">直推人数</label>
       <input type="number" class="form-control" id="directCount" value="4">
     </div>
+     <!-- 添加间推人数输入项 -->
+      <div class="col-md-4">
+        <label for="indirectCount" class="form-label">间推人数</label>
+        <input type="number" class="form-control" id="indirectCount" value="16">
+      </div>
+      <!-- 添加全团队人数输入项 -->
+      <div class="col-md-4">
+        <label for="teamCount" class="form-label">全团队人数</label>
+        <input type="number" class="form-control" id="teamCount" value="200">
+      </div>
     <div class="col-md-4">
       <label for="memberStake" class="form-label">每位会员质押金额 (U)</label>
       <input type="number" class="form-control" id="memberStake" value="10000">
@@ -105,24 +118,33 @@
         <option value="720" selected>720</option>
       </select>
     </div>
-    <div class="col-md-4">
-      <label for="mbcPrice" class="form-label">MBC 价格 (U)</label>
-      <input type="number" class="form-control" id="mbcPrice" value="0.02">
+    <!-- 添加折叠框按钮 -->
+    <div class="col-12">
+      <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedOptions" aria-expanded="false" aria-controls="advancedOptions">
+        高级选项
+      </button>
     </div>
-    <div class="col-md-4">
-      <label for="burnedNuts" class="form-label">平台今日燃烧 Nuts 总数</label>
-      <input type="number" class="form-control" id="burnedNuts" value="1000000">
-    </div>
-    <div class="col-md-4">
-      <label for="globalProfit" class="form-label">平台季度利润总额 (U)</label>
-      <input type="number" class="form-control" id="globalProfit" value="3000000">
-    </div>
-    <div class="col-md-4">
-      <label for="totalAgents" class="form-label">参与季度分红人数</label>
-      <input type="number" class="form-control" id="totalAgents" value="10">
+    <!-- 折叠框内容 -->
+    <div class="collapse" id="advancedOptions">
+      <div class="col-md-4">
+        <label for="mbcPrice" class="form-label">MBC 价格 (U)</label>
+        <input type="number" class="form-control" id="mbcPrice" value="0.02">
+      </div>
+      <div class="col-md-4">
+        <label for="burnedNuts" class="form-label">平台今日燃烧 Nuts 总数</label>
+        <input type="number" class="form-control" id="burnedNuts" value="1000000">
+      </div>
+      <div class="col-md-4">
+        <label for="globalProfit" class="form-label">平台季度利润总额 (U)</label>
+        <input type="number" class="form-control" id="globalProfit" value="3000000">
+      </div>
+      <div class="col-md-4">
+        <label for="totalAgents" class="form-label">参与季度分红人数</label>
+        <input type="number" class="form-control" id="totalAgents" value="10">
+      </div>
     </div>
     <div class="col-12 mt-3">
-      <button type="button" class="btn btn-primary" onclick="calculateEarnings()">开始模拟</button>
+      <button type="button" class="btn btn-primary" onclick="validateAndCalculate()">开始模拟</button>
     </div>
   </form>
 
@@ -185,6 +207,32 @@
 
   let pieChart, barChart;
 
+   function validateTeamNumbers() {
+    const direct = Number(document.getElementById("directCount").value);
+    const indirect = Number(document.getElementById("indirectCount").value);
+    const team = Number(document.getElementById("teamCount").value);
+    const total = direct + indirect;
+
+    if (total > team) {
+      document.getElementById("directCount").style.borderColor = "red";
+      document.getElementById("indirectCount").style.borderColor = "red";
+      document.getElementById("teamCount").style.borderColor = "red";
+      alert("直推人数与间推人数之和不能超过全团队人数，请重新输入！");
+      return false;
+    } else {
+      document.getElementById("directCount").style.borderColor = "";
+      document.getElementById("indirectCount").style.borderColor = "";
+      document.getElementById("teamCount").style.borderColor = "";
+      return true;
+    }
+  }
+
+  function validateAndCalculate() {
+    if (validateTeamNumbers()) {
+      calculateEarnings();
+    }
+  }
+
   function calculateEarnings() {
     // 确保Chart已定义
     if (typeof Chart === 'undefined') {
@@ -202,10 +250,12 @@
     const nutsBurned = Number(document.getElementById("burnedNuts").value);
     const profit = Number(document.getElementById("globalProfit").value);
     const agents = Number(document.getElementById("totalAgents").value);
+    // 读取间推人数输入值
+    const indirect = Number(document.getElementById("indirectCount").value);
+    // 读取全团队人数输入值
+    const team = Number(document.getElementById("teamCount").value);
 
     const vipCfg = VIP_LEVELS[vip];
-    const indirect = direct * direct;
-    const team = (direct + indirect) * 10;
 
     const memberApy = HASHBANK_APY[days];
     const memberTotal = stake * memberApy / 100;
