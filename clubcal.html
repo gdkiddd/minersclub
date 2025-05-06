@@ -67,7 +67,8 @@
 </head>
 <body>
 <div class="container">
-  <h2 class="mb-4">💰Hashclub代理收益模拟器v1.1 by KID</h2>
+  <h2 class="mb-4">💰Hashclub代理收益模拟器v1.2 KID</h2>
+<!-- ... 已有代码 ... -->
   <form id="earningsForm" class="row g-3 card p-4">
     <div class="col-md-4">
       <label for="vipLevel" class="form-label">VIP 等级</label>
@@ -92,18 +93,16 @@
     </div>
     <div class="col-md-4">
       <label for="directCount" class="form-label">直推人数</label>
-      <input type="number" class="form-control" id="directCount" value="4">
+      <!-- 直推人数改为下拉列表 -->
+      <select class="form-select" id="directCount">
+        <!-- 使用循环生成 1 到 20 的选项 -->
+        <script>
+          for (let i = 1; i <= 20; i++) {
+            document.write(`<option value="${i}" ${i === 4 ? 'selected' : ''}>${i}</option>`);
+          }
+        </script>
+      </select>
     </div>
-     <!-- 添加间推人数输入项 -->
-      <div class="col-md-4">
-        <label for="indirectCount" class="form-label">间推人数</label>
-        <input type="number" class="form-control" id="indirectCount" value="16">
-      </div>
-      <!-- 添加全团队人数输入项 -->
-      <div class="col-md-4">
-        <label for="teamCount" class="form-label">全团队人数</label>
-        <input type="number" class="form-control" id="teamCount" value="200">
-      </div>
     <div class="col-md-4">
       <label for="memberStake" class="form-label">每位会员质押金额 (U)</label>
       <input type="number" class="form-control" id="memberStake" value="10000">
@@ -142,11 +141,22 @@
         <label for="totalAgents" class="form-label">参与季度分红人数</label>
         <input type="number" class="form-control" id="totalAgents" value="10">
       </div>
+      <!-- 间推人数移入高级选项 -->
+      <div class="col-md-4">
+        <label for="indirectCount" class="form-label">间推人数</label>
+        <input type="number" class="form-control" id="indirectCount" value="16">
+      </div>
+      <!-- 全团队人数移入高级选项 -->
+      <div class="col-md-4">
+        <label for="teamCount" class="form-label">全团队人数</label>
+        <input type="number" class="form-control" id="teamCount" value="200">
+      </div>
     </div>
     <div class="col-12 mt-3">
       <button type="button" class="btn btn-primary" onclick="validateAndCalculate()">开始模拟</button>
     </div>
   </form>
+<!-- ... 已有代码 ... -->
 
   <div id="results" class="card p-4 mt-4" style="display: none;">
     <!-- 结果将在这里动态生成 -->
@@ -293,69 +303,60 @@
     resultsDiv.style.display = "block";
     
     // 创建结果HTML
+    // 创建结果 HTML
     resultsDiv.innerHTML = `
       <h4 class="mb-3">📊 收益模拟结果</h4>
-      
       <div class="key-metrics">
         <div class="metric-item">
-          <h5>团队邀请奖励</h5>
-          <div class="metric-value">$${promotionU.toFixed(2)}/天</div>
-          <small class="text-muted">MBC价值 (Nuts燃烧后)</small>
+          <h5 style="color: #d63384; font-weight: bold;">每日综合收益</h5>
+          <div class="metric-value" style="color: #d63384; font-weight: bold;">$${dailyTotal.toFixed(2)}/天</div>
         </div>
         <div class="metric-item">
-          <h5>季度分红</h5>
-          <div class="metric-value">$${quarterDaily.toFixed(2)}/天</div>
-          <small class="text-muted">按每季度计算</small>
+          <h5 style="color: #d63384; font-weight: bold;">年度总收益</h5>
+          <div class="metric-value" style="color: #d63384; font-weight: bold;">$${annual.toFixed(2)}</div>
         </div>
         <div class="metric-item">
-          <h5>合伙人服务费</h5>
-          <div class="metric-value">$${partnerFee.toFixed(2)}/天</div>
-          <small class="text-muted">${partner} (${PARTNER_LEVELS[partner]*100}%)</small>
-        </div>
-        <div class="metric-item">
-          <h5>自己质押收益</h5>
-          <div class="metric-value">$${myHashbankDaily.toFixed(2)}/天</div>
-          <small class="text-muted">质押金额: $${myStake}</small>
+          <h5 style="color: #d63384; font-weight: bold;">年度 ROI 回报率</h5>
+          <div class="metric-value" style="color: #d63384; font-weight: bold;">${roiAnnual}%</div>
         </div>
       </div>
-      
+
       <div class="row mt-4">
-        <div class="col-md-6">
-          <p><strong>VIP等级:</strong> ${vip} (质押要求: ${vipCfg.stake}U)</p>
-          <p><strong>直推人数:</strong> ${direct}, <strong>间推人数:</strong> ${indirect} (比例 1:${(indirect/direct).toFixed(1)})</p>
-          <p><strong>全团队人数:</strong> ${team}</p>
-        </div>
         <div class="col-md-6">
           <p><strong>会员日收益:</strong> $${memberDaily.toFixed(2)} (APY: ${memberApy}%)</p>
           <p><strong>MBC/Nuts 汇率:</strong> ${nutToMbcRate.toFixed(6)}</p>
-          <p class="highlight">每日综合收益: $${dailyTotal.toFixed(2)}</p>
         </div>
       </div>
-      
-      <h2 class="section-title">收益详情</h2>
-      
-      <div class="row">
-        <div class="col-md-6">
-          <p><strong>直推奖励 (${vipCfg.power_direct*100}%):</strong> $${directReward.toFixed(2)}</p>
-          <div class="reward-detail">
-            <p>→ Nuts: ${directRewardNuts.toFixed(0)} → MBC: ${directMbc.toFixed(2)}</p>
-            <p>→ MBC价值: <span class="text-success">$${directPromotionU.toFixed(2)}</span></p>
+
+      <h2 class="section-title">
+        收益详情
+        <button class="btn btn-sm btn-secondary float-end" type="button" data-bs-toggle="collapse" data-bs-target="#rewardDetails" aria-expanded="false" aria-controls="rewardDetails">
+          展开/收起
+        </button>
+      </h2>
+
+      <div class="collapse" id="rewardDetails">
+        <div class="row">
+          <div class="col-md-6">
+            <p><strong>直推奖励 (${vipCfg.power_direct*100}%):</strong> $${directReward.toFixed(2)}</p>
+            <div class="reward-detail">
+              <p>→ Nuts: ${directRewardNuts.toFixed(0)} → MBC: ${directMbc.toFixed(2)}</p>
+              <p>→ MBC价值: <span class="text-success">$${directPromotionU.toFixed(2)}</span></p>
+            </div>
+
+            <p><strong>间推奖励 (${vipCfg.power_indirect*100}%):</strong> $${indirectReward.toFixed(2)}</p>
+            <div class="reward-detail">
+              <p>→ Nuts: ${indirectRewardNuts.toFixed(0)} → MBC: ${indirectMbc.toFixed(2)}</p>
+              <p>→ MBC价值: <span class="text-success">$${indirectPromotionU.toFixed(2)}</span></p>
+            </div>
           </div>
-          
-          <p><strong>间推奖励 (${vipCfg.power_indirect*100}%):</strong> $${indirectReward.toFixed(2)}</p>
-          <div class="reward-detail">
-            <p>→ Nuts: ${indirectRewardNuts.toFixed(0)} → MBC: ${indirectMbc.toFixed(2)}</p>
-            <p>→ MBC价值: <span class="text-success">$${indirectPromotionU.toFixed(2)}</span></p>
+
+          <div class="col-md-6">
+            <p><strong>季度分红 (${vipCfg.dividend*100}%):</strong> $${quarterBonus.toFixed(2)}/季度</p>
+            <p><strong>每日季度分红:</strong> $${quarterDaily.toFixed(2)}/天</p>
+            <p><strong>合伙人服务费 (${PARTNER_LEVELS[partner]*100}%):</strong> $${partnerFee.toFixed(2)}/天</p>
+            <p><strong>自己质押收益:</strong> $${myHashbankDaily.toFixed(2)}/天</p>
           </div>
-        </div>
-        
-        <div class="col-md-6">
-          <p><strong>季度分红 (${vipCfg.dividend*100}%):</strong> $${quarterBonus.toFixed(2)}/季度</p>
-          <p><strong>每日季度分红:</strong> $${quarterDaily.toFixed(2)}/天</p>
-          <p><strong>合伙人服务费 (${PARTNER_LEVELS[partner]*100}%):</strong> $${partnerFee.toFixed(2)}/天</p>
-          <p><strong>自己质押收益:</strong> $${myHashbankDaily.toFixed(2)}/天</p>
-          <p><strong>年度总收益:</strong> $${annual.toFixed(2)}</p>
-          <p><strong>年度 ROI 回报率:</strong> ${roiAnnual}%</p>
         </div>
       </div>
       
