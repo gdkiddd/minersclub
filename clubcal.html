@@ -251,6 +251,7 @@
       return;
     }
 
+
     const vip = document.getElementById("vipLevel").value;
     const partner = document.getElementById("partnerLevel").value;
     const direct = Number(document.getElementById("directCount").value);
@@ -301,12 +302,19 @@
 
     const resultsDiv = document.getElementById("results");
     resultsDiv.style.display = "block";
-    
-    // 创建结果HTML
+
+
+     // 计算 Nuts 收益放大倍数
+    const nutsAmplification = (mbc * mbcPrice) / totalReward;
+
     // 创建结果 HTML
     resultsDiv.innerHTML = `
       <h4 class="mb-3">📊 收益模拟结果</h4>
       <div class="key-metrics">
+      <div class="metric-item">
+        <h5 style="color: #d63384; font-weight: bold;">Nuts 收益放大</h5>
+        <div class="metric-value" style="color: #d63384; font-weight: bold;">${nutsAmplification.toFixed(2)} 倍</div>
+      </div>
         <div class="metric-item">
           <h5 style="color: #d63384; font-weight: bold;">每日综合收益</h5>
           <div class="metric-value" style="color: #d63384; font-weight: bold;">$${dailyTotal.toFixed(2)}/天</div>
