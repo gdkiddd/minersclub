@@ -67,7 +67,7 @@
 </head>
 <body>
 <div class="container">
-  <h2 class="mb-4">💰Hashclub代理收益模拟器v1.2</h2>
+  <h2 class="mb-4">💰Hashclub代理收益模拟器v1.3</h2>
 <!-- ... 已有代码 ... -->
   <form id="earningsForm" class="row g-3 card p-4">
     <div class="col-md-4">
@@ -125,9 +125,23 @@
     </div>
     <!-- 折叠框内容 -->
     <div class="collapse" id="advancedOptions">
+        <!-- 间推人数移入高级选项 -->
+      <div class="col-md-4">
+        <label for="indirectCount" class="form-label">间推人数</label>
+        <input type="number" class="form-control" id="indirectCount" value="16">
+      </div>
+      <!-- 全团队人数移入高级选项 -->
+      <div class="col-md-4">
+        <label for="teamCount" class="form-label">全团队人数</label>
+        <input type="number" class="form-control" id="teamCount" value="200">
+      </div>
       <div class="col-md-4">
         <label for="mbcPrice" class="form-label">MBC 价格 (U)</label>
         <input type="number" class="form-control" id="mbcPrice" value="0.02">
+      </div>
+       <div class="col-md-4">
+        <label for="mbcDailyRelease" class="form-label">MBC 每日释放</label>
+        <input type="number" class="form-control" id="mbcDailyRelease" value="800000">
       </div>
       <div class="col-md-4">
         <label for="burnedNuts" class="form-label">平台今日燃烧 Nuts 总数</label>
@@ -138,29 +152,26 @@
         <input type="number" class="form-control" id="globalProfit" value="3000000">
       </div>
       <div class="col-md-4">
-        <label for="totalAgents" class="form-label">参与季度分红人数</label>
+        <label for="totalAgents" class="form-label">平台季度分红人数</label>
         <input type="number" class="form-control" id="totalAgents" value="10">
       </div>
-      <!-- 间推人数移入高级选项 -->
-      <div class="col-md-4">
-        <label for="indirectCount" class="form-label">间推人数</label>
-        <input type="number" class="form-control" id="indirectCount" value="16">
-      </div>
-      <!-- 全团队人数移入高级选项 -->
-      <div class="col-md-4">
-        <label for="teamCount" class="form-label">全团队人数</label>
-        <input type="number" class="form-control" id="teamCount" value="200">
-      </div>
+
     </div>
-    <div class="col-12 mt-3">
+ <div class="col-12 mt-3">
       <button type="button" class="btn btn-primary" onclick="validateAndCalculate()">开始模拟</button>
     </div>
+
   </form>
-<!-- ... 已有代码 ... -->
+   <div id="successMessage" class="alert alert-success mt-3" style="display: none;">
+      模拟计算成功！
+  </div>
 
   <div id="results" class="card p-4 mt-4" style="display: none;">
     <!-- 结果将在这里动态生成 -->
   </div>
+
+
+
 </div>
 
 <script>
@@ -187,7 +198,8 @@
   
   function initializePage() {
     // 初始模拟
-    calculateEarnings();
+    //calculateEarnings();
+    document.getElementById("successMessage").style.display = "none";
   }
 
   const VIP_LEVELS = {
@@ -207,9 +219,10 @@
     "无": 0.00
   };
 
+// hashbank周期内的apy
   const HASHBANK_APY = {
-    30: 1.83,
-    90: 7.5,
+    30: 1.16,
+    90: 5,
     180: 17.5,
     360: 40.0,
     720: 90.0
@@ -250,8 +263,6 @@
       alert("图表库加载失败，请刷新页面重试");
       return;
     }
-
-
     const vip = document.getElementById("vipLevel").value;
     const partner = document.getElementById("partnerLevel").value;
     const direct = Number(document.getElementById("directCount").value);
@@ -261,6 +272,9 @@
     const nutsBurned = Number(document.getElementById("burnedNuts").value);
     const profit = Number(document.getElementById("globalProfit").value);
     const agents = Number(document.getElementById("totalAgents").value);
+
+    const mbcDailyRelease = Number(document.getElementById("mbcDailyRelease").value);
+
     // 读取间推人数输入值
     const indirect = Number(document.getElementById("indirectCount").value);
     // 读取全团队人数输入值
@@ -276,16 +290,16 @@
     const indirectReward = indirect * memberDaily * vipCfg.power_indirect;
     const totalReward = directReward + indirectReward;
     const nuts = totalReward * 1000;
-    const mbc = nuts / nutsBurned * 800000;
+    const mbc = nuts / nutsBurned * mbcDailyRelease;
     const nutToMbcRate = mbc / nuts;
     const promotionU = mbc * mbcPrice;
 
     const directRewardNuts = directReward * 1000;
-    const directMbc = (directRewardNuts / nutsBurned) * 800000;
+    const directMbc = (directRewardNuts / nutsBurned) * mbcDailyRelease;
     const directPromotionU = directMbc * mbcPrice;
 
     const indirectRewardNuts = indirectReward * 1000;
-    const indirectMbc = (indirectRewardNuts / nutsBurned) * 800000;
+    const indirectMbc = (indirectRewardNuts / nutsBurned) * mbcDailyRelease;
     const indirectPromotionU = indirectMbc * mbcPrice;
 
     const myStake = vipCfg.stake;
@@ -312,7 +326,7 @@
       <h4 class="mb-3">📊 收益模拟结果</h4>
       <div class="key-metrics">
       <div class="metric-item">
-        <h5 style="color: #d63384; font-weight: bold;">Nuts 收益放大</h5>
+        <h5 style="color: #d63384; font-weight: bold;">🔥Nuts 收益放大</h5>
         <div class="metric-value" style="color: #d63384; font-weight: bold;">${nutsAmplification.toFixed(2)} 倍</div>
       </div>
         <div class="metric-item">
@@ -377,6 +391,21 @@
         </div>
       </div>
     `;
+
+    // 获取当前时间并格式化为 YYYY-MM-DD HH:mm:ss
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const currentTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+    // 显示成功提示，包含当前时间
+    const successMessageDiv = document.getElementById("successMessage");
+    successMessageDiv.innerHTML = `模拟计算成功！${currentTime}`;
+    successMessageDiv.style.display = "block";
 
     // 确保Canvas元素已创建
     setTimeout(() => {
@@ -492,6 +521,7 @@
         alert("创建图表时出错: " + error.message);
       }
     }, 100); // 给DOM一点时间来更新
+
   }
 </script>
 </body>
